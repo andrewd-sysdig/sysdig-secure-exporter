@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -76,9 +77,16 @@ type policyEventCount struct {
 }
 
 const namespace := "sysdig_secure"
-const secureEventsApi := "api/v1/secureEvents/"
+const secureEventCountsApi := "api/v1/secureEvents/count"
 
 var (
+	transport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true} // FIXME: really ?
+	}
+	client = &http.Client{
+		Transport: transport
+	}
+
 	//Metrics
 	scanningEvents := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "events_scanning_total"),
@@ -104,12 +112,27 @@ func NewExporter(sysdigSecureEndpoint string, sysdigSecureApiKey string) *Export
 	}
 }
 
+func UpdateMetrics(ch chan <- prometheus.Metric) {
+	//Load Scanning Events
+	req, err := http.NewRequest("GET", e.sysdigSecureEndpoint + secureEventCountsApi, nil)
+	if err != nil {	// FIXME: add funct checkErr()
+		log.Fatal(err)
+	}
+
+	req.Header.Set("Authorization", "BEARER " + e.sysdigSecureApiKey)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- policyEvents
 	ch <- scanningEvents
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+	// TODO
 }
 
 func main() {
