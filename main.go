@@ -11,6 +11,69 @@ import (
 	"golang.org/x/text/number"
 )
 
+/*
+{
+  "scanningEvents": {
+    "countBySeverity": {
+      "0": 90,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    }
+  }
+}
+*/
+
+type scanningEventCountList struct {
+	eventCounts []scanningEventCount	`json:"countBySeverity"`
+}
+
+type scanningEventCount struct {
+	severity0	number	`json:"0"`
+	severity1	number	`json:"1"`
+	severity2	number	`json:"2"`
+	severity3	number	`json:"3"`
+	severity4	number	`json:"4"`
+	severity5	number	`json:"5"`
+	severity6	number	`json:"6"`
+	severity7	number	`json:"7"`
+}
+
+/*
+{
+  "policyEvents": {
+    "countBySeverity": {
+      "0": 303,
+      "1": 0,
+      "2": 0,
+      "3": 178,
+      "4": 189923,
+      "5": 837,
+      "6": 0,
+      "7": 0
+    }
+  }
+}
+*/
+
+type policyEventCountList struct {
+	eventCounts []policyEventCount	`json:"countBySeverity"`
+}
+
+type policyEventCount struct {
+	severity0	number	`json:"0"`
+	severity1	number	`json:"1"`
+	severity2	number	`json:"2"`
+	severity3	number	`json:"3"`
+	severity4	number	`json:"4"`
+	severity5	number	`json:"5"`
+	severity6	number	`json:"6"`
+	severity7	number	`json:"7"`
+}
 
 const namespace := "sysdig_secure"
 const secureEventsApi := "api/v1/secureEvents/"
