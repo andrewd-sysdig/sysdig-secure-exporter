@@ -3,13 +3,15 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"flag"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/text/number"
+	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -25,27 +27,7 @@ import (
       "6": 0,
       "7": 0
     }
-  }
-}
-*/
-
-type scanningEventCountList struct {
-	eventCounts []scanningEventCount	`json:"countBySeverity"`
-}
-
-type scanningEventCount struct {
-	severity0	number	`json:"0"`
-	severity1	number	`json:"1"`
-	severity2	number	`json:"2"`
-	severity3	number	`json:"3"`
-	severity4	number	`json:"4"`
-	severity5	number	`json:"5"`
-	severity6	number	`json:"6"`
-	severity7	number	`json:"7"`
-}
-
-/*
-{
+  },
   "policyEvents": {
     "countBySeverity": {
       "0": 303,
@@ -57,47 +39,144 @@ type scanningEventCount struct {
       "6": 0,
       "7": 0
     }
+  },
+  "profilingDetectionEvents": {
+    "countBySeverity": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    }
+  },
+  "hostScanningEvents": {
+    "countBySeverity": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    }
+  },
+  "benchmarkEvents": {
+    "countBySeverity": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    }
+  },
+  "complianceEvents": {
+    "countBySeverity": {
+      "0": 280,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 12,
+      "5": 0,
+      "6": 0,
+      "7": 166
+    }
+  },
+  "cloudsecEvents": {
+    "countBySeverity": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0
+    }
   }
 }
 */
 
-type policyEventCountList struct {
-	eventCounts []policyEventCount	`json:"countBySeverity"`
+type SecureEventCountsMap struct { // FIXME: see, if you change the order, you can mix-up events !!
+	ScanningEventCountsMap           EventCountsMap `json:"scanningEvents"`
+	PolicyEventCountsMap             EventCountsMap `json:"policyEvents"`
+	ProfilingDetectionEventCountsMap EventCountsMap `json:"profilingDetectionEvents"`
+	HostScanningEventCountsMap       EventCountsMap `json:"hostScanningEvents"`
+	BenchmarkEventCountsMap          EventCountsMap `json:"benchmarkEvents"`
+	ComplianceEventCountsMap         EventCountsMap `json:"complianceEvents"`
+	CloudsecEventCountsMap           EventCountsMap `json:"cloudsecEvents"`
 }
 
-type policyEventCount struct {
-	severity0	number	`json:"0"`
-	severity1	number	`json:"1"`
-	severity2	number	`json:"2"`
-	severity3	number	`json:"3"`
-	severity4	number	`json:"4"`
-	severity5	number	`json:"5"`
-	severity6	number	`json:"6"`
-	severity7	number	`json:"7"`
+type EventCountsMap struct {
+	EventsCount map[uint8]uint32 `json:"countBySeverity"`
 }
 
-const namespace := "sysdig_secure"
-const secureEventCountsApi := "api/v1/secureEvents/count"
+const namespace = "sysdig_secure"
+const secureEventCountsApi = "api/v1/secureEvents/count?from=1654074448000000000&to=1655284048000000000" // FIXME: need to render the dates
 
 var (
 	transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true} // FIXME: really ?
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client = &http.Client{
-		Transport: transport
+		Transport: transport,
 	}
 
-	//Metrics
-	scanningEvents := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "events_scanning_total"),
-		"How many scanning events have been generated (per severity).",
-		[]string{"severity"}, nil
+	listenAddress = flag.String("web.listen-address", ":9100",
+		"address to listen on for metrics")
+	metricsPath = flag.String("web.metrics-path", "/metrics",
+		"path under which to expose metrics")
+
+	// Global metrics
+	up = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "up"),
+		"Was the last Sysdig Secure API query successful?",
+		nil, nil,
 	)
 
-	policyEvents := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "events_policy_total"),
+	// Secure event metrics
+	scanningEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_scanning_total"),
+		"How many scanning events have been generated (per severity).",
+		[]string{"severity", "count"}, nil,
+	)
+
+	policyEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_policy_total"),
 		"How many policy events have been generated (per severity).",
-		[]string{"severity"}, nil
+		[]string{"severity", "count"}, nil,
+	)
+
+	profilingDetectionEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_profiling_detection_total"),
+		"How many profiling detection events have been generated (per severity).",
+		[]string{"severity", "count"}, nil,
+	)
+
+	hostScanningEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_host_scanning_total"),
+		"How many policy events have been generated (per severity).",
+		[]string{"severity", "count"}, nil,
+	)
+
+	benchmarkEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_benchmark_total"),
+		"How many policy events have been generated (per severity).",
+		[]string{"severity", "count"}, nil,
+	)
+
+	complianceEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_compliance_total"),
+		"How many policy events have been generated (per severity).",
+		[]string{"severity", "count"}, nil,
+	)
+
+	cloudsecEvents = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "secure_events_cloudsec_total"),
+		"How many policy events have been generated (per severity).",
+		[]string{"severity", "count"}, nil, // FIXME: Goto func SendPrometheusMetrics() below, does it really match ?
 	)
 )
 
@@ -108,34 +187,100 @@ type Exporter struct {
 func NewExporter(sysdigSecureEndpoint string, sysdigSecureApiKey string) *Exporter {
 	return &Exporter{
 		sysdigSecureEndpoint: sysdigSecureEndpoint,
-		sysdigSecureApiKey: sysdigSecureApiKey
-	}
-}
-
-func UpdateMetrics(ch chan <- prometheus.Metric) {
-	//Load Scanning Events
-	req, err := http.NewRequest("GET", e.sysdigSecureEndpoint + secureEventCountsApi, nil)
-	if err != nil {	// FIXME: add funct checkErr()
-		log.Fatal(err)
-	}
-
-	req.Header.Set("Authorization", "BEARER " + e.sysdigSecureApiKey)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
+		sysdigSecureApiKey:   sysdigSecureApiKey,
 	}
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- policyEvents
 	ch <- scanningEvents
+	ch <- profilingDetectionEvents
+	ch <- hostScanningEvents
+	ch <- benchmarkEvents
+	ch <- complianceEvents
+	ch <- cloudsecEvents
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
-	// TODO
+	secureEventCountsMap, err := e.LoadSecureEventCountsMap()
+
+	if err != nil {
+		ch <- prometheus.MustNewConstMetric(
+			up, prometheus.GaugeValue, 0,
+		)
+		log.Fatal(err)
+		return
+	}
+	ch <- prometheus.MustNewConstMetric(
+		up, prometheus.GaugeValue, 1,
+	)
+
+	e.SendPrometheusMetrics(secureEventCountsMap, ch) // TODO: add other maps later here
+}
+
+func (e *Exporter) LoadSecureEventCountsMap() (SecureEventCountsMap, error) {
+	// Load secure events
+	req, err := http.NewRequest("GET", e.sysdigSecureEndpoint+secureEventCountsApi, nil)
+	if err != nil { // FIXME: add funct checkErr()
+		log.Fatal(err)
+	}
+
+	req.Header.Set("Authorization", "BEARER "+e.sysdigSecureApiKey)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var secureEventCountsMap SecureEventCountsMap // FIXME: a top-level variable, really ?
+	err = json.Unmarshal(body, &secureEventCountsMap)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return secureEventCountsMap, nil
+}
+
+func (e *Exporter) SendPrometheusMetrics(secureEventCountsMap SecureEventCountsMap, ch chan<- prometheus.Metric) {
+	for pr, c := range secureEventCountsMap.PolicyEventCountsMap.EventsCount {
+		ch <- prometheus.MustNewConstMetric(
+			policyEvents, prometheus.GaugeValue, pr, c,
+		)
+	}
 }
 
 func main() {
 	flag.Parse()
-}
 
+	// TODO: add config file parsing
+
+	sysdigSecureEndpoint := os.Getenv("SYSDIG_SECURE_ENDPOINT")
+	sysdigSecureApiKey := os.Getenv("SYSDIG_SECURE_API_KEY")
+
+	exporter := NewExporter(sysdigSecureEndpoint, sysdigSecureApiKey)
+	prometheus.MustRegister(exporter)
+
+	log.SetLevel(log.DebugLevel) // FIXME: only for testing !!
+
+	log.Info("Using Sysdig Secure endpoint: ", sysdigSecureEndpoint)
+
+	//exporter.Collect() // FIXME: only for testing !!
+
+	http.Handle(*metricsPath, promhttp.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+		<head><title>Sysdig Secure Exporter</title></head>
+		<body>
+		<h1>Sysdig Secure Exporter</h1>
+		<p><a href='` + *metricsPath + `'></a></p>
+		</body>
+		</html>`))
+	})
+
+	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+}
