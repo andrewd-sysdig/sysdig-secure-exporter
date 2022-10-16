@@ -28,24 +28,36 @@ Examples:
 curl -s -H "Authorization: Bearer $SYSDIG_SECURE_API_KEY" -H "Accept: application/json" -X GET https://us2.app.sysdig.com/api/v1/secure/overview | jq
 ```
 
-- Audit events:
+- Audit event counts: //TODO
 
 ```bash
 curl -s -H "Authorization: Bearer $SYSDIG_SECURE_API_KEY" -H "Accept: application/json" -X GET 'https://us2.app.sysdig.com/api/v1/activityAudit/events?from=1654074448000000000&to=1655284048000000000' | jq
 ```
 
-- Secure events:
+- Secure event counts:
 
 ```bash
-curl -s -H "Authorization: Bearer $SYSDIG_SECURE_API_KEY" -H "Accept: application/json" -X GET 'https://us2.app.sysdig.com/api/v1/secureEvents/count?from=1654074448000000000&to=1655284048000000000' | jq
+curl -s -H "Authorization: Bearer $SYSDIG_SECURE_API_KEY" -H "Accept: application/json" -X GET 'https://us2.app.sysdig.com/api/v1/secureEvents/count?from=1661381789000000000&to=1661425589000000000' | jq
 ```
 
-You can also use the API Swagger: <https://us2.app.sysdig.com/secure/swagger.html>
+- Secure event top stats: //TODO
+
+```bash
+curl -s -H "Authorization: Bearer $SYSDIG_SECURE_API_KEY" -H "Accept: application/json" -X GET 'https://us2.app.sysdig.com/api/v1/secureEvents/topStats?from=1663407015319849400&to=1663493415319849400&rows=5' | jq
+```
+
+- You can also use the API Swagger: <https://us2.app.sysdig.com/secure/swagger.html>
 
 ### Enhancements
+
+- Parse a configuration file
 
 - Get rid of the duplication in the `ScanningEventCountList`, `PolicyEventCountList` ..etc.
 
 - Add unit tests
 
 - Lookup that errors handling part, e.g: w functions returning nil
+
+- Gotta find a list of secure events by severity, like high, warning ..etc ?
+
+- Go multi-tenant, like get metrics of staging, production ..etc
