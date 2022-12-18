@@ -132,35 +132,35 @@ var (
 
 	// Secure event count metrics
 	scanningEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "scanning_events_total"), "How many scanning events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "scanning_events_total"), "What is the count of scanning events (per severity) ?", []string{"severity"}, nil)
 	policyEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "policy_events_total"), "How many policy events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "policy_events_total"), "What is the count of policy events (per severity) ?", []string{"severity"}, nil)
 	profilingDetectionEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "profiling_detection_events_total"), "How many profiling detection events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "profiling_detection_events_total"), "What is the count of profiling detection events (per severity) ?", []string{"severity"}, nil)
 	hostScanningEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "host_scanning_events_total"), "How many host scanning events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "host_scanning_events_total"), "What is the count of host scanning events (per severity) ?", []string{"severity"}, nil)
 	benchmarkEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "benchmark_events_total"), "How many benchmark events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "benchmark_events_total"), "What is the count of benchmark events (per severity) ?", []string{"severity"}, nil)
 	complianceEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "compliance_events_total"), "How many compliance events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "compliance_events_total"), "What is the count of compliance events (per severity) ?", []string{"severity"}, nil)
 	cloudsecEventCounts = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "cloudsec_events_total"), "How many cloudsec events have been generated (per severity) ?", []string{"severity"}, nil)
+		prometheus.BuildFQName(namespace, "", "cloudsec_events_total"), "What is the count of cloudsec events (per severity) ?", []string{"severity"}, nil)
 
 	// Secure event top stat metrics
 	imageEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_image_events_total"), "What are the top columns of events by container image (per image and label) ?", []string{"image", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_image_events_total"), "What are the top column values and counts of events by container image (per image and label) ?", []string{"image", "label"}, nil)
 	clusterEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_cluster_events_total"), "What are the top columns of events by kubernetes cluster (per cluster and label) ?", []string{"cluster", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_cluster_events_total"), "What are the top column values and counts of events by kubernetes cluster (per cluster and label) ?", []string{"cluster", "label"}, nil)
 	namespaceEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_namespace_events_total"), "What are the top columns of events by kubernetes namespace (per namespace and label) ?", []string{"namespace", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_namespace_events_total"), "What are the top column values and counts of events by kubernetes namespace (per namespace and label) ?", []string{"namespace", "label"}, nil)
 	nodeEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_node_events_total"), "What are the top columns of events by kubernetes node (per node and label) ?", []string{"node", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_node_events_total"), "What are the top column values and counts of events by kubernetes node (per node and label) ?", []string{"node", "label"}, nil)
 	mitreEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_mitre_events_total"), "What are the top columns of events by mitre (per mitre and label) ?", []string{"mitre", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_mitre_events_total"), "What are the top column values and counts of events by mitre (per mitre and label) ?", []string{"mitre", "label"}, nil)
 	ruleEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_rule_events_total"), "What are the top columns of events by rule name (per rule and label) ?", []string{"rule", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_rule_events_total"), "What are the top column values and counts of events by rule name (per rule and label) ?", []string{"rule", "label"}, nil)
 	workloadEventTopStats = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "top_workload_events_total"), "What are the top columns of events by workload (per workload and label) ?", []string{"workload", "label"}, nil)
+		prometheus.BuildFQName(namespace, "", "top_workload_events_total"), "What are the top column values and counts of events by workload (per workload and label) ?", []string{"workload", "label"}, nil)
 )
 
 type Exporter struct {
@@ -170,13 +170,12 @@ type Exporter struct {
 }
 
 func checkErr(err error, ch chan<- prometheus.Metric) {
-	// Inform scrape has failed, if channel is given
-	if ch != nil {
-		ch <- prometheus.MustNewConstMetric(up, prometheus.GaugeValue, 0)
-	}
-
-	// Log error
 	if err != nil {
+		// Inform scrape has failed, if channel is given
+		if ch != nil {
+			ch <- prometheus.MustNewConstMetric(up, prometheus.GaugeValue, 0)
+		}
+		// Log error
 		log.Fatal(err)
 	}
 }
@@ -411,7 +410,7 @@ func main() {
 	sysdigSecureApiStatRows := uint8(*apiStatRows)
 
 	log.Infof("Using Sysdig Secure API endpoint: %s", sysdigSecureEndpoint)
-	log.Infof("Using API time window: %d hours (diff between 'from' and 'to')", uint16(sysdigSecureApiTimeWindow.Hours()))
+	log.Infof("Using API time window (diff. btw 'from' and 'to'): %d hours", uint16(sysdigSecureApiTimeWindow.Hours()))
 
 	// Setup the Prometheus exporter
 	exporter := NewExporter(sysdigSecureEndpoint, sysdigSecureApiKey, sysdigSecureApiTimeWindow, sysdigSecureApiStatRows)
