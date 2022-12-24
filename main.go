@@ -123,7 +123,7 @@ var (
 	listenAddress = flag.String("web.listen-address", ":9100", "address to listen on for metrics")
 	metricsPath   = flag.String("web.metrics-path", "/metrics", "path under which to expose metrics")
 
-	// API parameters
+	// API paths
 	secureEventCountsApi   string
 	secureEventTopStatsApi string
 
@@ -164,9 +164,9 @@ var (
 )
 
 type Exporter struct {
-	sysdigSecureEndpoint, sysdigSecureApiKey string
-	sysdigSecureApiTimeWindow                time.Duration
-	sysdigSecureApiStatRows                  uint8
+	sysdigSecureApiEndpoint, sysdigSecureApiKey string
+	sysdigSecureApiTimeWindow                   time.Duration
+	sysdigSecureApiStatRows                     uint8
 }
 
 func checkErr(err error, ch chan<- prometheus.Metric) {
@@ -180,9 +180,9 @@ func checkErr(err error, ch chan<- prometheus.Metric) {
 	}
 }
 
-func NewExporter(sysdigSecureEndpoint string, sysdigSecureApiKey string, sysdigSecureApiTimeWindow time.Duration, sysdigSecureApiStatRows uint8) *Exporter {
+func NewExporter(sysdigSecureApiEndpoint string, sysdigSecureApiKey string, sysdigSecureApiTimeWindow time.Duration, sysdigSecureApiStatRows uint8) *Exporter {
 	return &Exporter{
-		sysdigSecureEndpoint:      sysdigSecureEndpoint,
+		sysdigSecureApiEndpoint:   sysdigSecureApiEndpoint,
 		sysdigSecureApiKey:        sysdigSecureApiKey,
 		sysdigSecureApiTimeWindow: sysdigSecureApiTimeWindow,
 		sysdigSecureApiStatRows:   sysdigSecureApiStatRows,
@@ -236,7 +236,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 func (e *Exporter) LoadSecureEventCountsMatrix() (SecureEventCountsMatrix, error) {
 	// Setup HTTP request
-	req, err := http.NewRequest("GET", e.sysdigSecureEndpoint+secureEventCountsApi, nil)
+	req, err := http.NewRequest("GET", e.sysdigSecureApiEndpoint+secureEventCountsApi, nil)
 	checkErr(err, nil)
 
 	// Authenticate
@@ -247,7 +247,11 @@ func (e *Exporter) LoadSecureEventCountsMatrix() (SecureEventCountsMatrix, error
 	// Read response body
 	body, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
+	log.Infof("DEBUG resp: %s", resp) // FIXME
+	log.Infof("DEBUG err: %s", err)   // FIXME
 	checkErr(err, nil)
+
+	// TODO: check if un-authorized, and make sure a response is Json formatted
 
 	// Unmarshall secure event counts json
 	var secureEventCountsMatrix SecureEventCountsMatrix
@@ -259,7 +263,7 @@ func (e *Exporter) LoadSecureEventCountsMatrix() (SecureEventCountsMatrix, error
 
 func (e *Exporter) LoadSecureEventTopStatsMatrix() (SecureEventTopStatsMatrix, error) {
 	// Setup HTTP request
-	req, err := http.NewRequest("GET", e.sysdigSecureEndpoint+secureEventTopStatsApi, nil)
+	req, err := http.NewRequest("GET", e.sysdigSecureApiEndpoint+secureEventTopStatsApi, nil)
 	checkErr(err, nil)
 
 	// Authenticate
@@ -318,52 +322,59 @@ func (e *Exporter) SendPrometheusMetrics(secureEventCountsMatrix SecureEventCoun
 	}
 
 	// Push secure event top stat metrics
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.ImageEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.ImageEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.ImageEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.ImageEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(imageEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.ClusterEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.ClusterEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.ClusterEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.ClusterEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(clusterEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.NamespaceEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.NamespaceEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.NamespaceEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.NamespaceEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(namespaceEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.NodeEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.NodeEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.NodeEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.NodeEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(nodeEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.MitreEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.MitreEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.MitreEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.MitreEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(mitreEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.RuleNameEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.RuleNameEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.RuleNameEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.RuleNameEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(ruleEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 
-	for c := 0; c < int(e.sysdigSecureApiStatRows); c++ {
-		key := secureEventTopStatsMatrix.WorkloadEventTopStatsArray[c].EventsKey
-		cnt := secureEventTopStatsMatrix.WorkloadEventTopStatsArray[c].EventsCount
-		lbl := secureEventTopStatsMatrix.WorkloadEventTopStatsArray[c].EventsLabel
+	for k, st := range secureEventTopStatsMatrix.WorkloadEventTopStatsArray {
+		_ = k
+		key := st.EventsKey
+		cnt := st.EventsCount
+		lbl := st.EventsLabel
 		ch <- prometheus.MustNewConstMetric(workloadEventTopStats, prometheus.GaugeValue, float64(cnt), key, lbl)
 	}
 }
@@ -394,26 +405,33 @@ func main() {
 	// Parse environment variables from file
 	envFilePath := *envFile
 	if envFilePath != "" {
-		err := godotenv.Load(envFilePath)
+		err := godotenv.Load(envFilePath) // FIXME: somehow env variables take priority !!
 		if err != nil {
 			log.Warnf("Could not load env file: '%s', assuming env variables are set.", envFilePath)
 		}
 	}
 
 	// Parse environment variables from shell
-	sysdigSecureEndpoint := os.Getenv("SYSDIG_SECURE_ENDPOINT")
+	sysdigSecureApiEndpoint := os.Getenv("SYSDIG_SECURE_API_ENDPOINT")
 	sysdigSecureApiKey := os.Getenv("SYSDIG_SECURE_API_KEY")
 
+	if len(sysdigSecureApiEndpoint) == 0 {
+		sysdigSecureApiEndpoint = "https://secure.sysdig.com/"
+	}
+	if len(sysdigSecureApiKey) == 0 {
+		log.Fatal("Missing Sysdig Secure API key, use env variable SYSDIG_SECURE_API_KEY.")
+	}
+
+	// Format API parameters
 	sysdigSecureApiTimeWindow, err := time.ParseDuration(*apiTimeWindow)
 	checkErr(err, nil)
-
 	sysdigSecureApiStatRows := uint8(*apiStatRows)
 
-	log.Infof("Using Sysdig Secure API endpoint: %s", sysdigSecureEndpoint)
+	log.Infof("Using Sysdig Secure API endpoint: %s", sysdigSecureApiEndpoint)
 	log.Infof("Using API time window (diff. btw 'from' and 'to'): %d hours", uint16(sysdigSecureApiTimeWindow.Hours()))
 
 	// Setup the Prometheus exporter
-	exporter := NewExporter(sysdigSecureEndpoint, sysdigSecureApiKey, sysdigSecureApiTimeWindow, sysdigSecureApiStatRows)
+	exporter := NewExporter(sysdigSecureApiEndpoint, sysdigSecureApiKey, sysdigSecureApiTimeWindow, sysdigSecureApiStatRows)
 	prometheus.MustRegister(exporter)
 
 	// Setup the Prometheus metrics endpoint
@@ -422,7 +440,7 @@ func main() {
 		w.Write([]byte(`<html>
 <head><title>Sysdig Secure Prometheus Exporter</title></head>
 <body>
-<h1>A Prometheus Exporter for Sysdig Secure</h1>
+<h1>A Prometheus Exporter for Sysdig Secure events</h1>
 <p><a href='` + *metricsPath + `'></a></p>
 </body>
 </html>`))
