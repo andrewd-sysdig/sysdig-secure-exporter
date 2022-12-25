@@ -67,6 +67,8 @@ The Sysdig Secure REST API URL and authorization token may be provided either vi
 
 For more information about the API SaaS regions and IP ranges, refer to the Sysdig Secure documentation: <https://docs.sysdig.com/en/docs/administration/saas-regions-and-ip-ranges/#saas-regions-and-ip-ranges>
 
+:grey_exclamation: Environment variables always take priority over environment files (.env).
+
 ## Using Docker
 
 You can use the [Dockerfile](./Dockerfile) to build the Prometheus Exporter and run it like this (after updating the .env file with the API endpoint and key):
@@ -88,21 +90,3 @@ curl localhost:9100/metrics
 ## Important information
 
 This Prometheus exporter is inspired from the [Mirth Channel Exporter](https://github.com/teamzerolabs/mirth_channel_exporter) by TeamZeroLabs. Read their Medium article for more info: [15 Steps to Write an Application Prometheus Exporter in GO](https://medium.com/teamzerolabs/15-steps-to-write-an-application-prometheus-exporter-in-go-9746b4520e26)
-
-## TODO
-
-- Fix Docker build issues:
-
-```sh
-amemni@LT-C3D10Z2:~/Desktop/Repos/others/amemni/sysdig_secure_exporter$ docker run --rm     --name sysdig-secure-exporter -p 9100:9100     -v $(pwd)/sysdig_secure_exporter.env:/tmp/sysdig-secure-exporter.env     sysdig_secure_exporter -- -config.env-file /tmp/sysdig-secure-exporter.env
-time="2022-12-24T21:30:07Z" level=info msg="Using Sysdig Secure API endpoint: https://secure.sysdig.com/"
-time="2022-12-24T21:30:07Z" level=info msg="Using API time window (diff. btw 'from' and 'to'): 24 hours"
-time="2022-12-24T21:30:12Z" level=fatal msg="invalid character 'o' in literal null (expecting 'u')"
-amemni@LT-C3D10Z2:~/Desktop/Repos/others/amemni/sysdig_secure_exporter$
-```
-
-- Testing with curl:
-
-```sh
-curl -s -H "Authorization: Bearer $SYSDIG_SECURE_API_KEY" -H "Accept: application/json" -X GET 'https://us2.app.sysdig.com/api/v1/secureEvents/topStats?from=1671883040981752398&to=1671969440981752398&rows=5' | jq
-```

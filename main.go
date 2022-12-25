@@ -21,8 +21,8 @@ import (
 {
   "scanningEvents": {
     "countBySeverity": {
-      "0": 90,
-      "1": 0,
+      "0": 101,
+      "1": 17,
       "2": 0,
       "3": 0,
       "4": 0,
@@ -33,12 +33,12 @@ import (
   },
   "policyEvents": {
     "countBySeverity": {
-      "0": 303,
+      "0": 706,
       "1": 0,
       "2": 0,
-      "3": 178,
-      "4": 189923,
-      "5": 837,
+      "3": 230,
+      "4": 829,
+      "5": 13765,
       "6": 0,
       "7": 0
     }
@@ -65,25 +65,25 @@ type EventCountsMap struct {
 {
   "container.image.repo": [
     {
-      "key": "artifactory.datapwn.com/docker-io-remote/fluxcd/helm-operator",
-      "count": 8805,
+      "key": "ubuntu",
+      "count": 931,
       "label": "container.image.repo"
     },
     {
-      "key": "artifactory.datapwn.com/docker-io-remote/mongo",
-      "count": 1693,
+      "key": "traefik",
+      "count": 107,
       "label": "container.image.repo"
     },
     ...
   ],
   "kubernetes.cluster.name": [
     {
-      "key": "prod-eu-app",
+      "key": "prod-app",
       "count": 3557,
       "label": "kubernetes.cluster.name"
     },
     {
-      "key": "prod-us-app",
+      "key": "staging-app",
       "count": 3429,
       "label": "kubernetes.cluster.name"
     },
@@ -244,14 +244,15 @@ func (e *Exporter) LoadSecureEventCountsMatrix() (SecureEventCountsMatrix, error
 	resp, err := client.Do(req)
 	checkErr(err, nil)
 
+	// Check status code
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		log.Fatal(resp.Status)
+	}
+
 	// Read response body
 	body, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	log.Infof("DEBUG resp: %s", resp) // FIXME
-	log.Infof("DEBUG err: %s", err)   // FIXME
 	checkErr(err, nil)
-
-	// TODO: check if un-authorized, and make sure a response is Json formatted
 
 	// Unmarshall secure event counts json
 	var secureEventCountsMatrix SecureEventCountsMatrix
@@ -270,6 +271,11 @@ func (e *Exporter) LoadSecureEventTopStatsMatrix() (SecureEventTopStatsMatrix, e
 	req.Header.Set("Authorization", "BEARER "+e.sysdigSecureApiKey)
 	resp, err := client.Do(req)
 	checkErr(err, nil)
+
+	// Check status code
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		log.Fatal(resp.Status)
+	}
 
 	// Read response body
 	body, err := ioutil.ReadAll(resp.Body)
@@ -399,13 +405,13 @@ func main() {
 	case "panic":
 		log.SetLevel(log.PanicLevel)
 	default:
-		log.Fatal("Supported log levels: \"trace\", \"debug\", \"info\", \"warn\", \"error\", \"fatal\", and \"panic\".")
+		log.Warn("Unsupported log level, setting to \"info\" by default.")
 	}
 
 	// Parse environment variables from file
 	envFilePath := *envFile
 	if envFilePath != "" {
-		err := godotenv.Load(envFilePath) // FIXME: somehow env variables take priority !!
+		err := godotenv.Load(envFilePath)
 		if err != nil {
 			log.Warnf("Could not load env file: '%s', assuming env variables are set.", envFilePath)
 		}
@@ -414,12 +420,11 @@ func main() {
 	// Parse environment variables from shell
 	sysdigSecureApiEndpoint := os.Getenv("SYSDIG_SECURE_API_ENDPOINT")
 	sysdigSecureApiKey := os.Getenv("SYSDIG_SECURE_API_KEY")
-
 	if len(sysdigSecureApiEndpoint) == 0 {
 		sysdigSecureApiEndpoint = "https://secure.sysdig.com/"
 	}
 	if len(sysdigSecureApiKey) == 0 {
-		log.Fatal("Missing Sysdig Secure API key, use env variable SYSDIG_SECURE_API_KEY.")
+		log.Warn("Could not read a Sysdig Secure API key, env variable SYSDIG_SECURE_API_KEY is empty.")
 	}
 
 	// Format API parameters

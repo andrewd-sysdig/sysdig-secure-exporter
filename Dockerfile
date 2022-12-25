@@ -17,6 +17,7 @@ RUN apk update
 WORKDIR /app
 COPY --from=build /app /app
 
+# Make sure to change the port to match the 'web.listen-address' flag.
 EXPOSE 9100
 
 ENTRYPOINT ["./sysdig_secure_exporter"]
