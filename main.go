@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -250,7 +250,7 @@ func (e *Exporter) LoadSecureEventCountsMatrix() (SecureEventCountsMatrix, error
 	}
 
 	// Read response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	checkErr(err, nil)
 
@@ -278,7 +278,7 @@ func (e *Exporter) LoadSecureEventTopStatsMatrix() (SecureEventTopStatsMatrix, e
 	}
 
 	// Read response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	checkErr(err, nil)
 

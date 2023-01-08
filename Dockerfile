@@ -1,7 +1,7 @@
 FROM golang:1.19-alpine as build
 
 WORKDIR /app
-COPY *.go go.mod go.sum /app
+COPY *.go go.mod go.sum /app/
 
 # CGO is disabled to simplify the build and because we use pure Go.
 # For more info: https://dave.cheney.net/tag/cgo
