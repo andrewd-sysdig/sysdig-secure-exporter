@@ -4,7 +4,7 @@
 
 This Prometheus Exporter exports Sysdig Secure REST API data to Prometheus metrics.
 
-You can find more details about the Sysdig Secure REST API in the Sysdig Secure REST API [Swagger](https://secure.sysdig.com/swagger.htm) (for the US1 region) or [documentation](https://docs.sysdig.com/en/docs/developer-tools/sysdig-rest-api-conventions/).
+You can find more details about the Sysdig Secure REST API in the Sysdig Secure REST API [Swagger](https://secure.sysdig.com/swagger.html) (for the US1 region) or [documentation](https://docs.sysdig.com/en/docs/developer-tools/sysdig-rest-api-conventions/).
 
 To run it:
 
