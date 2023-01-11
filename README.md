@@ -69,16 +69,10 @@ For more information about the API SaaS regions and IP ranges, refer to the Sysd
 
 :grey_exclamation: Environment variables always take priority over environment files (.env).
 
-## Using Docker
-
-You can use the [Dockerfile](./Dockerfile) to build the Prometheus Exporter and run it like this (after updating the .env file with the API endpoint and key):
+## Running with Docker
 
 ```sh
-docker build -t sysdig_secure_exporter .
-docker run -t --rm \
-    --name sysdig-secure-exporter -p 9100:9100 \
-    -v $(pwd)/sysdig_secure_exporter.env:/tmp/sysdig-secure-exporter.env \
-    sysdig_secure_exporter -config.env-file /tmp/sysdig-secure-exporter.env
+docker run --name ghcr.io/andrewd-sysdig/sysdig-secure-exporter:latest -p 9100:9100 sysdig_secure_exporter -e SYSDIG_SECURE_API_ENDPOINT=https://app.au1.sysdig.com -e SYSDIG_SECURE_API_KEY=xxxx
 ```
 
 Then, you can run this curl to see the Sysdig Secure Prometheus metrics:

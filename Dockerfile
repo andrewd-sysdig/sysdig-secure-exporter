@@ -10,12 +10,10 @@ RUN go mod download && \
 
 # A multi-stage build keeps the image size down and cleans up un-needed artifacts.
 # For more info: https://docs.docker.com/build/building/multi-stage/
-FROM alpine:3.17
-
-RUN apk update
+FROM scratch
 
 WORKDIR /app
-COPY --from=build /app /app
+COPY --from=build /app/sysdig_secure_exporter /app
 
 # Make sure to change the port to match the 'web.listen-address' flag.
 EXPOSE 9100
