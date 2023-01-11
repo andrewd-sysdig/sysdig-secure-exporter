@@ -81,6 +81,14 @@ Then, you can run this curl to see the Sysdig Secure Prometheus metrics:
 curl localhost:9100/metrics
 ```
 
+## Run in your kubernetes environment
+
+```sh
+git clone https://github.com/andrewd-sysdig/sysdig-secure-exporter.git
+kubectl create ns sysdig-exporter
+kubectl apply -f sysdig-secure-exporter/k8s-deployment.yaml
+```
+
 ## Important information
 
 This Prometheus exporter is inspired from the [Mirth Channel Exporter](https://github.com/teamzerolabs/mirth_channel_exporter) by TeamZeroLabs. Read their Medium article for more info: [15 Steps to Write an Application Prometheus Exporter in GO](https://medium.com/teamzerolabs/15-steps-to-write-an-application-prometheus-exporter-in-go-9746b4520e26)

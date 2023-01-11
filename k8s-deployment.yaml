@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sysdig-secure-exporter
+  labels:
+    app: sysdig-secure-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sysdig-secure-exporter
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9100"
+        prometheus.io/scheme: http
+        prometheus.io/scrape: "true"
+      labels:
+        app: sysdig-secure-exporter
+    spec:
+      containers:
+      - name: sysdig-secure-exporter
+        image: ghcr.io/andrewd-sysdig/sysdig-secure-exporter:latest
+        env:
+        - name: SYSDIG_SECURE_API_ENDPOINT
+          value: "https://app.au1.sysdig.com/"
+        - name: SYSDIG_SECURE_API_KEY
+          value: "xxx"
+        ports:
+        - containerPort: 9100
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
