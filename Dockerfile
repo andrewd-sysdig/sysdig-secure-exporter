@@ -18,4 +18,6 @@ COPY --from=build /app/sysdig_secure_exporter /app
 # Make sure to change the port to match the 'web.listen-address' flag.
 EXPOSE 9100
 
+USER 1000
+
 ENTRYPOINT ["./sysdig_secure_exporter"]
